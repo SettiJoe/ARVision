@@ -14,13 +14,13 @@ TagManager:
   - 
   - 
   - Floor
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
+  - Wall
+  - Door
+  - Widow
+  - Table
+  - Seat
+  - Obstacle
+  - Ceiling
   - 
   - 
   - 

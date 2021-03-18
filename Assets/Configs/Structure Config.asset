@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7a3eb4d7808f944c8afe15fbfcc44053, type: 3}
+  m_Name: Structure Config
+  m_EditorClassIdentifier: 
+  layerMask:
+    serializedVersion: 2
+    m_Bits: 3584
+  warningRanges:
+  - audioCue: {fileID: 8300000, guid: 66d7a9f47463b4d66984bee6ab2f2019, type: 3}
+    audioCueFrequency: 2
+    range: 100
+    priority: 1

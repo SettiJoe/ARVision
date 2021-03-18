@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7a3eb4d7808f944c8afe15fbfcc44053, type: 3}
+  m_Name: Furniture Config
+  m_EditorClassIdentifier: 
+  layerMask:
+    serializedVersion: 2
+    m_Bits: 12288
+  warningRanges:
+  - audioCue: {fileID: 8300000, guid: f46dea53f8df7424493b7a89d609159e, type: 3}
+    audioCueFrequency: 2
+    range: 100
+    priority: 2

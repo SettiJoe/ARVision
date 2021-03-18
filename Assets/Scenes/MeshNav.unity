@@ -272,10 +272,10 @@ MonoBehaviour:
     type: 3}
   m_Density: 1
   m_Normals: 1
-  m_Tangents: 0
-  m_TextureCoordinates: 0
-  m_Colors: 0
-  m_ConcurrentQueueSize: 4096
+  m_Tangents: 1
+  m_TextureCoordinates: 1
+  m_Colors: 1
+  m_ConcurrentQueueSize: 1024
 --- !u!1 &612618616
 GameObject:
   m_ObjectHideFlags: 0
@@ -291,7 +291,7 @@ GameObject:
   - component: {fileID: 612618622}
   - component: {fileID: 612618617}
   m_Layer: 0
-  m_Name: Capsule
+  m_Name: Navigation Origin
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -381,8 +381,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 612618616}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.5, y: 1, z: 0.5}
+  m_LocalPosition: {x: 0, y: 1, z: 0}
+  m_LocalScale: {x: 0.75, y: 1, z: 0.75}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 4
@@ -406,7 +406,7 @@ NavMeshAgent:
   m_AutoBraking: 1
   m_AutoRepath: 1
   m_Height: 2
-  m_BaseOffset: 0
+  m_BaseOffset: 1
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
 --- !u!1 &705507993
@@ -620,6 +620,10 @@ GameObject:
   - component: {fileID: 1336890961}
   - component: {fileID: 1336890960}
   - component: {fileID: 1336890959}
+  - component: {fileID: 1336890964}
+  - component: {fileID: 1336890963}
+  - component: {fileID: 1336890966}
+  - component: {fileID: 1336890965}
   m_Layer: 0
   m_Name: AR Camera
   m_TagString: MainCamera
@@ -727,3 +731,59 @@ Transform:
   m_Father: {fileID: 764112614}
   m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!135 &1336890963
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1336890957}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.5
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1336890964
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1336890957}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f5638bf22585448229864cf6075f6e71, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  obstacleConfigs:
+  - {fileID: 11400000, guid: c88973118cd3548ca8dc87889dbf0b89, type: 2}
+  - {fileID: 11400000, guid: e1dcabec70c7c4eecb51856165e0e826, type: 2}
+  - {fileID: 11400000, guid: fd0061c6037354534a65f04f953dd0df, type: 2}
+  simultaneousAudioWarnings: 3
+  audioWarningPrefab: {fileID: 1822947233425054687, guid: 17e6c78faafd64dfa84d02f192e4674e,
+    type: 3}
+--- !u!54 &1336890965
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1336890957}
+  serializedVersion: 2
+  m_Mass: 1
+  m_Drag: 0
+  m_AngularDrag: 0.05
+  m_UseGravity: 0
+  m_IsKinematic: 1
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
+--- !u!81 &1336890966
+AudioListener:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1336890957}
+  m_Enabled: 1

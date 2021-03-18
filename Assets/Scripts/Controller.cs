@@ -15,18 +15,32 @@ public class Controller : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetMouseButtonDown(0))
+        
+        foreach (Touch touch in Input.touches)
+
         {
-            surface.BuildNavMesh();
-            SetPlayerDestination();
+            Debug.Log("Touches");
+            if (touch.phase == TouchPhase.Began)
+            {
+                surface.BuildNavMesh();
+                SetPlayerDestination();
+                return;
+            }
         }
     }
 
     private void SetPlayerDestination()
     {
-        var gotHit = Physics.Raycast(mainCamera.transform.position, Vector3.down, out var cameraBaseHit);
+        Debug.Log("SetPlayerDestination");
+
+        var gotHit = Physics.Raycast(mainCamera.transform.position,
+            Vector3.down,
+            out var cameraBaseHit,
+            5,
+            LayerMask.GetMask("Floor"));
         if (!gotHit)
             return;
+        Debug.Log("Floor Below Player");
 
         agent.ResetPath();
         agent.Warp(cameraBaseHit.point);
