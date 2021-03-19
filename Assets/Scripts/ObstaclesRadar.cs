@@ -169,6 +169,8 @@ namespace Navigator
 
         private void OnTriggerEnter(Collider other)
         {
+            Debug.Log($"OnTriggerEnter {other.name}");
+
             if (GetObstacleConfig(other.gameObject, out var obstacleConfig))
             {
                 AddObstacle(other, obstacleConfig);
