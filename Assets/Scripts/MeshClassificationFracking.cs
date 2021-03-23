@@ -5,9 +5,9 @@ using UnityEngine;
 using UnityEngine.XR;
 using UnityEngine.XR.ARFoundation;
 using UnityEngine.XR.ARSubsystems;
-#if UNITY_IOS && !UNITY_EDITOR
+// #if UNITY_IOS && !UNITY_EDITOR
 using UnityEngine.XR.ARKit;
-#endif // UNITY_IOS && !UNITY_EDITOR
+// #endif // UNITY_IOS && !UNITY_EDITOR
 
 using Object = UnityEngine.Object;
 
@@ -65,7 +65,7 @@ namespace UnityEngine.XR.ARFoundation.Samples
         /// </summary>
         public MeshFilter m_DoorMeshPrefab;
 
-    #if UNITY_IOS && !UNITY_EDITOR
+    // #if UNITY_IOS && !UNITY_EDITOR
 
         /// <summary>
         /// A mapping from tracking ID to instantiated mesh filters.
@@ -265,10 +265,13 @@ namespace UnityEngine.XR.ARFoundation.Samples
                         var classifiedMesh = classifiedMeshFilter.mesh;
                         ExtractClassifiedMesh(baseMesh, faceClassifications, (ARMeshClassification)i, classifiedMesh);
                         meshFilters[i].mesh = classifiedMesh;
+                        meshFilters[i].GetComponent<MeshCollider>().sharedMesh = classifiedMesh;
                     }
                 }
             }
         }
+
+        public int cooldown = 1;
 
         /// <summary>
         /// Update the submeshes corresponding to the single mesh with multiple face classifications into submeshes.
@@ -308,9 +311,15 @@ namespace UnityEngine.XR.ARFoundation.Samples
                         var classifiedMesh = classifiedMeshFilter.mesh;
                         ExtractClassifiedMesh(baseMesh, faceClassifications, (ARMeshClassification)i, classifiedMesh);
                         meshFilters[i].mesh = classifiedMesh;
+                        meshFilters[i].GetComponent<MeshCollider>().sharedMesh = classifiedMesh;
+
+                        if (cooldown < 0) Debug.Log($"[{meshId}] {meshFilters[i].mesh} {meshFilters[i]}");
                     }
                 }
             }
+
+            if (cooldown < 0)
+                cooldown = 1;
         }
 
         /// <summary>
@@ -332,6 +341,6 @@ namespace UnityEngine.XR.ARFoundation.Samples
 
             m_MeshFrackingMap.Remove(meshId);
         }
-    #endif // UNITY_IOS && !UNITY_EDITOR
+    // #endif // UNITY_IOS && !UNITY_EDITOR
     }
 }
