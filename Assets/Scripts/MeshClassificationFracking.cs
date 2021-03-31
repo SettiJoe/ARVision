@@ -328,6 +328,7 @@ namespace UnityEngine.XR.ARFoundation.Samples
         /// <param name="meshFilter">The mesh filter for the base mesh with multiple face classifications.</param>
         void RemoveMesh(MeshFilter meshFilter)
         {
+            Debug.Log("Remove Mesh");
             var meshId = ExtractTrackableId(meshFilter.name);
             var meshFilters = m_MeshFrackingMap[meshId];
             for (int i = 0; i < k_NumClassifications; ++i)
@@ -335,7 +336,7 @@ namespace UnityEngine.XR.ARFoundation.Samples
                 var classifiedMeshFilter = meshFilters[i];
                 if (classifiedMeshFilter != null)
                 {
-                    Object.Destroy(classifiedMeshFilter);
+                    Destroy(classifiedMeshFilter.gameObject);
                 }
             }
 

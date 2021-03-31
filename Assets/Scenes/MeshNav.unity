@@ -242,6 +242,7 @@ MonoBehaviour:
     type: 3}
   m_DoorMeshPrefab: {fileID: 6108169453717286223, guid: f7aeb5ca16bc04524a07fe581cedf3ff,
     type: 3}
+  cooldown: 1
 --- !u!114 &595830263
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -272,10 +273,10 @@ MonoBehaviour:
     type: 3}
   m_Density: 1
   m_Normals: 1
-  m_Tangents: 1
-  m_TextureCoordinates: 1
+  m_Tangents: 0
+  m_TextureCoordinates: 0
   m_Colors: 1
-  m_ConcurrentQueueSize: 512
+  m_ConcurrentQueueSize: 4096
 --- !u!1 &612618616
 GameObject:
   m_ObjectHideFlags: 0
@@ -382,7 +383,7 @@ Transform:
   m_GameObject: {fileID: 612618616}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 1, z: 0}
-  m_LocalScale: {x: 0.75, y: 1, z: 0.75}
+  m_LocalScale: {x: 0.5, y: 1, z: 0.5}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 4
@@ -397,7 +398,7 @@ NavMeshAgent:
   m_Enabled: 1
   m_AgentTypeID: 0
   m_Radius: 0.5
-  m_Speed: 7
+  m_Speed: 3
   m_Acceleration: 10
   avoidancePriority: 50
   m_AngularSpeed: 180
@@ -590,7 +591,7 @@ MonoBehaviour:
   m_OverrideTileSize: 0
   m_TileSize: 256
   m_OverrideVoxelSize: 0
-  m_VoxelSize: 0.16666667
+  m_VoxelSize: 0.11666667
   m_BuildHeightMesh: 0
   m_NavMeshData: {fileID: 23800000, guid: eb6b5543b4b8744faaac0432aad8fa76, type: 2}
 --- !u!4 &1033002255
@@ -622,7 +623,7 @@ GameObject:
   - component: {fileID: 1336890960}
   - component: {fileID: 1336890959}
   - component: {fileID: 1336890964}
-  - component: {fileID: 1336890963}
+  - component: {fileID: 1336890966}
   m_Layer: 0
   m_Name: AR Camera
   m_TagString: MainCamera
@@ -724,25 +725,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1336890957}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: -1, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 764112614}
   m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!135 &1336890963
-SphereCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1336890957}
-  m_Material: {fileID: 0}
-  m_IsTrigger: 1
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 99999
-  m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &1336890964
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -759,7 +747,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: c88973118cd3548ca8dc87889dbf0b89, type: 2}
   - {fileID: 11400000, guid: e1dcabec70c7c4eecb51856165e0e826, type: 2}
   - {fileID: 11400000, guid: fd0061c6037354534a65f04f953dd0df, type: 2}
-  simultaneousAudioWarnings: 3
+  simultaneousAudioWarnings: 1
   audioWarningPrefab: {fileID: 1822947233425054687, guid: 17e6c78faafd64dfa84d02f192e4674e,
     type: 3}
 --- !u!81 &1336890965
@@ -770,3 +758,17 @@ AudioListener:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1336890957}
   m_Enabled: 1
+--- !u!136 &1336890966
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1336890957}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 1
+  m_Enabled: 1
+  m_Radius: 0.25
+  m_Height: 2
+  m_Direction: 1
+  m_Center: {x: 0, y: 2, z: 0}

@@ -19,15 +19,21 @@ namespace Navigator
 
         private void TryPlayObstacleWarnings()
         {
+            Debug.Log($"TryPlayObstacleWarnings {activeObstacles.Count}");
             foreach (var activeObstacle in activeObstacles)
             {
                 activeObstacle.remainingWarningTime -= Time.deltaTime;
+                Debug.Log($"activeObstacle: {activeObstacle.obstacleConfig.name}");
 
                 if (activeObstacle.currentWarningConfig == null || activeObstacle.assignedAudioSource == null)
                     continue;
 
-                if (activeObstacle.remainingWarningTime < 0 && activeObstacle.assignedAudioSource.isPlaying == false)
+                Debug.Log($"activeObstacle properly setup {activeObstacle.obstacleConfig.name}");
+
+                // if (activeObstacle.remainingWarningTime < 0 && activeObstacle.assignedAudioSource.isPlaying == false)
+                if (activeObstacle.remainingWarningTime < 0)
                 {
+                    Debug.Log($"Trying  {activeObstacle.obstacleConfig.name}");
                     activeObstacle.remainingWarningTime = activeObstacle.currentWarningConfig.audioCueFrequency;
                     activeObstacle.assignedAudioSource.Play();
                 }
@@ -37,20 +43,34 @@ namespace Navigator
         private void AssignAudioSources()
         {
             var maxAudioSources = Math.Min(simultaneousAudioWarnings, activeObstacles.Count);
+            Debug.Log($"AssignAudioSources {activeObstacles.Count} | maxAudioSources:  {maxAudioSources} | simultaneousAudioWarnings: {simultaneousAudioWarnings}");
 
             for (int i = 0; i < maxAudioSources; i++)
             {
                 var activeObstacle = activeObstacles[i];
 
+                if (activeObstacle.currentWarningConfig == null)
+                    continue;
+
+                Debug.Log($"Obstacle Audio assign: {activeObstacle.obstacle.name} | assignedAudioSource: {activeObstacle.assignedAudioSource}");
+
                 if (activeObstacle.assignedAudioSource == null)
                 {
+                    Debug.Log($"Selecting audioSource, poolsize: {audioSourcePool.Count}");
                     var audioSource = audioSourcePool[0];
+                    Debug.Log($"Selected audioSource: {audioSource}");
+
+                    if (audioSource.isPlaying)
+                        break;
+
                     activeObstacle.assignedAudioSource = audioSource;
                     audioSource.clip = activeObstacle.currentWarningConfig.audioCue;
 
                     audioSourcePool.RemoveAt(0);
+                    Debug.Log($"Removed audioSource from pool: {audioSource}");
                 }
 
+                Debug.Log($"Reposition audioSource, assigned: {activeObstacle.assignedAudioSource}");
                 activeObstacle.assignedAudioSource.transform.position = activeObstacle.closesPoint;
             }
         }
@@ -65,6 +85,22 @@ namespace Navigator
                     audioSourcePool.Add(activeObstacle.assignedAudioSource);
                 }
             }
+
+            audioSourcePool.Sort((audioSource1, audioSource2) =>
+            {
+                if (audioSource1.isPlaying)
+                {
+                    if (audioSource2.isPlaying)
+                        return 0;
+
+                    return 1;
+                }
+
+                if (audioSource2.isPlaying)
+                    return -1;
+
+                return 0;
+            });
         }
 
         private void ReassignAudioSources()
@@ -77,15 +113,28 @@ namespace Navigator
         private void RecalculatePriorities()
         {
             var position = transform.position;
+            var deletedObstacles = new List<ActiveObstacleWarningInfo>(activeObstacles.Count);
 
             foreach (var activeObstacle in activeObstacles)
             {
+                if (activeObstacle.obstacle == null)
+                {
+                    deletedObstacles.Add(activeObstacle);
+
+                    if (activeObstacle.assignedAudioSource != null)
+                        audioSourcePool.Add(activeObstacle.assignedAudioSource);
+
+                    continue;
+                }
+
                 var closestPoint = activeObstacle.obstacle.ClosestPoint(position);
                 var distance = (position - closestPoint).magnitude;
 
                 activeObstacle.closesPoint = closestPoint;
                 SetPriority(activeObstacle, distance);
             }
+
+            activeObstacles.RemoveAll(entry => deletedObstacles.Contains(entry));
 
             activeObstacles.Sort((obstacle1, obstacle2) =>
             {
@@ -94,11 +143,11 @@ namespace Navigator
                     if (obstacle2.currentWarningConfig == null)
                         return 0;
 
-                    return -1;
+                    return 1;
                 }
 
                 if (obstacle2.currentWarningConfig == null)
-                    return 1;
+                    return -1;
 
                 return obstacle1.currentWarningConfig.priority.CompareTo(obstacle2.currentWarningConfig.priority);
             });
@@ -128,7 +177,7 @@ namespace Navigator
 
         private void AddObstacle(Collider other, ObstacleConfig obstacleConfig)
         {
-            Debug.Log("AddObstacle");
+            Debug.Log($"AddObstacle | {other.name} | LayerMask {obstacleConfig.layerMask}");
             var activeObstacle = new ActiveObstacleWarningInfo
             {
                 obstacle = other,
@@ -141,10 +190,12 @@ namespace Navigator
 
         private void TryRemoveObstacle(Collider other)
         {
+            Debug.Log($"TryRemoveObstacle");
             var obstacle = activeObstacles.Find(obstacleConfig => obstacleConfig.obstacle == other);
 
             if (obstacle != null)
             {
+                Debug.Log($"Removed obstacle");
                 activeObstacles.Remove(obstacle);
 
                 if (obstacle.assignedAudioSource != null)
@@ -169,8 +220,7 @@ namespace Navigator
 
         private void OnTriggerEnter(Collider other)
         {
-            Debug.Log($"OnTriggerEnter {other.name}");
-
+            Debug.LogWarning("OnTriggerEnter");
             if (GetObstacleConfig(other.gameObject, out var obstacleConfig))
             {
                 AddObstacle(other, obstacleConfig);
@@ -179,6 +229,7 @@ namespace Navigator
 
         private void OnTriggerExit(Collider other)
         {
+            Debug.LogWarning("OnTriggerExit");
             TryRemoveObstacle(other);
         }
 

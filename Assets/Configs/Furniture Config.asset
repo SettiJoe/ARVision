@@ -12,11 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7a3eb4d7808f944c8afe15fbfcc44053, type: 3}
   m_Name: Furniture Config
   m_EditorClassIdentifier: 
+  configName: Funiture
   layerMask:
     serializedVersion: 2
     m_Bits: 12288
   warningRanges:
-  - audioCue: {fileID: 8300000, guid: f46dea53f8df7424493b7a89d609159e, type: 3}
-    audioCueFrequency: 3
-    range: 10
-    priority: 1
+  - audioCue: {fileID: 8300000, guid: f5f2f6449acae47549909c0ea9ce9057, type: 3}
+    audioCueFrequency: 1
+    range: 0.1
+    priority: 2
