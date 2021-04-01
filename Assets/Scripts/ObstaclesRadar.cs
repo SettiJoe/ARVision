@@ -30,8 +30,8 @@ namespace Navigator
 
                 Debug.Log($"activeObstacle properly setup {activeObstacle.obstacleConfig.name}");
 
-                // if (activeObstacle.remainingWarningTime < 0 && activeObstacle.assignedAudioSource.isPlaying == false)
-                if (activeObstacle.remainingWarningTime < 0)
+                if (activeObstacle.remainingWarningTime < 0 && activeObstacle.assignedAudioSource.isPlaying == false)
+                //if (activeObstacle.remainingWarningTime < 0)
                 {
                     Debug.Log($"Trying  {activeObstacle.obstacleConfig.name}");
                     activeObstacle.remainingWarningTime = activeObstacle.currentWarningConfig.audioCueFrequency;

@@ -272,11 +272,11 @@ MonoBehaviour:
   m_MeshPrefab: {fileID: 1373904216114790947, guid: 8888a9fcb520f41978693736efe576b7,
     type: 3}
   m_Density: 1
-  m_Normals: 1
+  m_Normals: 0
   m_Tangents: 0
   m_TextureCoordinates: 0
-  m_Colors: 1
-  m_ConcurrentQueueSize: 4096
+  m_Colors: 0
+  m_ConcurrentQueueSize: 8
 --- !u!1 &612618616
 GameObject:
   m_ObjectHideFlags: 0
@@ -747,7 +747,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: c88973118cd3548ca8dc87889dbf0b89, type: 2}
   - {fileID: 11400000, guid: e1dcabec70c7c4eecb51856165e0e826, type: 2}
   - {fileID: 11400000, guid: fd0061c6037354534a65f04f953dd0df, type: 2}
-  simultaneousAudioWarnings: 1
+  simultaneousAudioWarnings: 3
   audioWarningPrefab: {fileID: 1822947233425054687, guid: 17e6c78faafd64dfa84d02f192e4674e,
     type: 3}
 --- !u!81 &1336890965
@@ -768,7 +768,7 @@ CapsuleCollider:
   m_Material: {fileID: 0}
   m_IsTrigger: 1
   m_Enabled: 1
-  m_Radius: 0.25
+  m_Radius: 0.5
   m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 2, z: 0}
