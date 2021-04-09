@@ -20,4 +20,4 @@ MonoBehaviour:
   - audioCue: {fileID: 8300000, guid: 1c781f848e26d48438b68431e63a6b8d, type: 3}
     audioCueFrequency: 1
     range: 0.5
-    priority: 3
+    priority: 1

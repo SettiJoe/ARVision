@@ -19,5 +19,5 @@ MonoBehaviour:
   warningRanges:
   - audioCue: {fileID: 8300000, guid: f5f2f6449acae47549909c0ea9ce9057, type: 3}
     audioCueFrequency: 1
-    range: 0.1
-    priority: 1
+    range: 0.5
+    priority: 2
