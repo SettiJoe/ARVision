@@ -12,12 +12,44 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7a3eb4d7808f944c8afe15fbfcc44053, type: 3}
   m_Name: Obstacle Config
   m_EditorClassIdentifier: 
-  configName: Obstacle
   layerMask:
     serializedVersion: 2
     m_Bits: 16384
   warningRanges:
-  - audioCue: {fileID: 8300000, guid: 1e345b5270c504d53840a2410a6579c3, type: 3}
+  - audioCue: {fileID: 8300000, guid: d22901d85a1074231917044aa61e05be, type: 3}
     audioCueFrequency: 1
-    range: 0.5
-    priority: 3
+    animationCurve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 1
+        inSlope: -1.4017816
+        outSlope: -1.4017816
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0.16408956
+      - serializedVersion: 3
+        time: 0.3
+        value: 0.4
+        inSlope: -1.6787955
+        outSlope: -1.6787955
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.18918921
+        outWeight: 0.33333334
+      - serializedVersion: 3
+        time: 0.75
+        value: 0
+        inSlope: -0.05012095
+        outSlope: -0.05012095
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.3293919
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    range: 0.75
+    priority: 1

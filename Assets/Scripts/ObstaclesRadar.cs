@@ -33,6 +33,7 @@ namespace Navigator
 
         private List<ActiveWarningObstacle> activeObstacles;
         private List<ActiveWarningCluster> activeClusters;
+        private List<ActiveWarningCluster> clustersPool;
 
         private float clusterThreshold = 1.5f;
         private int assignedAudioSources;
@@ -55,19 +56,23 @@ namespace Navigator
                 {
                     Log($"{activeCluster}: Trying play sound");
 
-                    activeCluster.remainingWarningTime = activeCluster.warningConfig.audioCueFrequency;
+                    var audioSource = activeCluster.assignedAudioSource;
+                    var warningConfig = activeCluster.warningConfig;
+                    var animationCurve = warningConfig.animationCurve;
 
-                    activeCluster.assignedAudioSource.clip = activeCluster.warningConfig.audioCue;
-                    activeCluster.assignedAudioSource.transform.position = activeCluster.closestPoint;
-                    activeCluster.assignedAudioSource.Play();
+                    activeCluster.remainingWarningTime = warningConfig.audioCueFrequency;
+
+                    audioSource.clip = warningConfig.audioCue;
+                    audioSource.transform.position = activeCluster.closestPoint;
+
+                    audioSource.minDistance = animationCurve.keys[0].time;
+                    audioSource.maxDistance = animationCurve.keys[animationCurve.length - 1].time;
+                    audioSource.rolloffMode = AudioRolloffMode.Custom;
+                    audioSource.SetCustomCurve(AudioSourceCurveType.CustomRolloff, animationCurve);
+
+                    audioSource.Play();
                 }
             }
-        }
-
-        private void ReassignAudioSources()
-        {
-            // FreeDeprioritizedAudioSources();
-            AssignAudioSources();
         }
 
         private async void RefreshWarnings()
@@ -91,16 +96,14 @@ namespace Navigator
 
         private void DeassignAudioSources()
         {
+            assignedAudioSources = 0;
+
             foreach (var key in isAudioSourceAssigned.Keys.ToList())
-            {
                 isAudioSourceAssigned[key] = false;
-            }
         }
 
         private void ReprioritizeAudioSources()
         {
-            assignedAudioSources = 0;
-
             audioSourcePool.Sort((audioSource1, audioSource2) =>
             {
                 if (audioSource1.isPlaying)
@@ -123,12 +126,19 @@ namespace Navigator
             {
                 var activeCluster = activeClusters[i];
 
-                if (activeCluster.warningConfig == null || activeCluster.assignedAudioSource != null)
+                if (activeCluster.warningConfig == null)
                     continue;
 
-                var audioSource = GetAvailableAudioSource();
-                if (audioSource == null || audioSource.isPlaying)
+                Log("AssignAudioSources | Got WarningConfig");
+
+                if (activeCluster.assignedAudioSource != null)
                     continue;
+
+                Log("AssignAudioSources | Got no assigned audio source");
+
+                var audioSource = GetAvailableAudioSource();
+                if (audioSource == null)
+                    return;
 
                 activeCluster.assignedAudioSource = audioSource;
 
@@ -138,15 +148,15 @@ namespace Navigator
 
         private AudioSource GetAvailableAudioSource()
         {
-            for (int i = assignedAudioSources; i < audioSourcePool.Count; i++)
+            for (int i = 0; i < audioSourcePool.Count; i++)
             {
-                var audioSource = audioSourcePool[assignedAudioSources];
-                assignedAudioSources++;
+                var audioSource = audioSourcePool[i];
 
-                if (isAudioSourceAssigned[audioSource])
+                if (isAudioSourceAssigned[audioSource] || audioSource.isPlaying)
                     continue;
 
                 isAudioSourceAssigned[audioSource] = true;
+                assignedAudioSources++;
                 return audioSource;
             }
 
@@ -187,14 +197,20 @@ namespace Navigator
 
                 if (equalCluster == null) continue;
 
-                if (equalCluster.assignedAudioSource != null)
+                Log($"{cluster} Found equal cluster");
+
+                if (equalCluster.assignedAudioSource != null && equalCluster.assignedAudioSource.isPlaying)
                 {
                     cluster.assignedAudioSource = equalCluster.assignedAudioSource;
                     isAudioSourceAssigned[cluster.assignedAudioSource] = true;
+                    assignedAudioSources++;
+                    Log($"{cluster} Reused audioSource");
                 }
 
                 cluster.remainingWarningTime = equalCluster.remainingWarningTime;
             }
+
+            clustersPool.AddRange(activeClusters);
 
             activeClusters = newClusters;
         }
@@ -241,15 +257,35 @@ namespace Navigator
 
         private ActiveWarningCluster CreateBaseCluster(ActiveWarningObstacle targetObstacle)
         {
-            var cluster = new ActiveWarningCluster
-            {
-                mainObstacle = targetObstacle,
-                closestPoint = targetObstacle.closestPoint,
-                warningConfig = GetWarningConfig(targetObstacle),
-                obstacleConfig = targetObstacle.obstacleConfig,
-                childObstacles = new List<ActiveWarningObstacle> {targetObstacle},
-            };
+            var cluster = GetClusterFromPool();
+
+            cluster.mainObstacle = targetObstacle;
+            cluster.closestPoint = targetObstacle.closestPoint;
+            cluster.warningConfig = GetWarningConfig(targetObstacle);
+            cluster.obstacleConfig = targetObstacle.obstacleConfig;
+            cluster.childObstacles.Add(targetObstacle);
             cluster.remainingWarningTime = cluster.warningConfig?.audioCueFrequency * 0.5f ?? 0;
+
+            return cluster;
+        }
+
+        private ActiveWarningCluster GetClusterFromPool()
+        {
+            if (clustersPool.Count == 0)
+            {
+                Debug.LogWarning("Created new cluster");
+                return new ActiveWarningCluster()
+                {
+                    childObstacles = new List<ActiveWarningObstacle>()
+                };
+            }
+
+
+            var cluster = clustersPool[0];
+            clustersPool.RemoveAt(0);
+
+            cluster.childObstacles.Clear();
+            cluster.assignedAudioSource = null;
 
             return cluster;
         }
@@ -272,21 +308,47 @@ namespace Navigator
         private void RecalculateClosestPoints(List<ActiveWarningObstacle> remainingObstacles)
         {
             var position = transform.position;
+            var gotFeetPosition = GetFeetPosition(position, out var feetPosition);
 
             foreach (var activeWarningObstacle in remainingObstacles)
             {
-                activeWarningObstacle.closestPoint = activeWarningObstacle.obstacle.ClosestPoint(position);
-                activeWarningObstacle.distanceToPlayer = (position - activeWarningObstacle.closestPoint).magnitude;
+                var closestPoint = activeWarningObstacle.obstacle.ClosestPoint(position);
+                activeWarningObstacle.closestPoint = closestPoint;
+                activeWarningObstacle.distanceToPlayer = (position - closestPoint).magnitude;
+
+                if (!gotFeetPosition)
+                    continue;
+
+                var closestFeetPoint = activeWarningObstacle.obstacle.ClosestPoint(feetPosition);
+                var distance = (feetPosition - closestFeetPoint).magnitude;
+
+                if (!(distance < activeWarningObstacle.distanceToPlayer))
+                    continue;
+
+                activeWarningObstacle.closestPoint = closestFeetPoint;
+                activeWarningObstacle.distanceToPlayer = distance;
             }
 
             remainingObstacles.Sort((obstacle1, obstacle2) => obstacle1.distanceToPlayer.CompareTo(obstacle2.distanceToPlayer));
+        }
+
+        private bool GetFeetPosition(Vector3 position, out Vector3 feetPosition)
+        {
+            feetPosition = Vector3.zero;
+            var gotHit = Physics.Raycast(position, Vector3.down, out var cameraBaseHit, 50, LayerMask.GetMask("Floor"));
+
+            if (!gotHit)
+                return false;
+
+            feetPosition = cameraBaseHit.point;
+            return true;
         }
 
         private void Update()
         {
             Log($"Update {activeClusters.Count}");
 
-            ReassignAudioSources();
+            AssignAudioSources();
             TryPlayObstacleWarnings();
         }
 
@@ -362,11 +424,13 @@ namespace Navigator
             activeObstacles = new List<ActiveWarningObstacle>();
             activeClusters = new List<ActiveWarningCluster>();
 
+            clustersPool = new List<ActiveWarningCluster>();
+
             cancellationTokenSource = new CancellationTokenSource();
             RefreshWarnings();
 
 #if UNITY_EDITOR
-            EditorApplication.playModeStateChanged += LogPlayModeState;
+            EditorApplication.playModeStateChanged += PlayModeStateChanged;
 #endif
         }
 
@@ -375,15 +439,15 @@ namespace Navigator
             if (!logVerbose && isVerbose)
                 return;
 
-            Debug.Log(message);
+            Debug.Log($"{Time.time} || {message}");
         }
 
 #if UNITY_EDITOR
-        private void LogPlayModeState(PlayModeStateChange state)
+        private void PlayModeStateChanged(PlayModeStateChange state)
         {
             if (state == PlayModeStateChange.ExitingPlayMode)
             {
-                EditorApplication.playModeStateChanged -= LogPlayModeState;
+                EditorApplication.playModeStateChanged -= PlayModeStateChanged;
                 cancellationTokenSource.Cancel();
                 cancellationTokenSource = null;
             }

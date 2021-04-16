@@ -12,12 +12,44 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7a3eb4d7808f944c8afe15fbfcc44053, type: 3}
   m_Name: Furniture Config
   m_EditorClassIdentifier: 
-  configName: Funiture
   layerMask:
     serializedVersion: 2
     m_Bits: 12288
   warningRanges:
-  - audioCue: {fileID: 8300000, guid: f5f2f6449acae47549909c0ea9ce9057, type: 3}
+  - audioCue: {fileID: 8300000, guid: 29c5eff74044442dbb15ca1055e1b75b, type: 3}
     audioCueFrequency: 1
-    range: 0.5
+    animationCurve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 1
+        inSlope: -1.4672209
+        outSlope: -1.4672209
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0.09966216
+      - serializedVersion: 3
+        time: 0.3
+        value: 0.4
+        inSlope: -2.1300538
+        outSlope: -2.1300538
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0.151246
+      - serializedVersion: 3
+        time: 0.75
+        value: 0
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    range: 0.75
     priority: 2
