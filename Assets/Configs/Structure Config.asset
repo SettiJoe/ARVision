@@ -17,58 +17,39 @@ MonoBehaviour:
     m_Bits: 3584
   warningRanges:
   - audioCue: {fileID: 8300000, guid: d22901d85a1074231917044aa61e05be, type: 3}
-    audioCueFrequency: 0.1
+    audioCueFrequency: 2
     animationCurve:
       serializedVersion: 2
       m_Curve:
       - serializedVersion: 3
-        time: 0
-        value: 1
-        inSlope: -1.0310985
-        outSlope: -1.0310985
+        time: 0.24958497
+        value: 0.99668884
+        inSlope: 0
+        outSlope: 0
         tangentMode: 0
         weightedMode: 0
         inWeight: 0
-        outWeight: 0.23517711
+        outWeight: 0.15609527
       - serializedVersion: 3
-        time: 0.75
-        value: 0.2
-        inSlope: 0.012559765
-        outSlope: 0.012559765
+        time: 0.50226706
+        value: 0.903447
+        inSlope: -1.0685365
+        outSlope: -1.0685365
         tangentMode: 0
         weightedMode: 0
-        inWeight: 0.88537216
-        outWeight: 0
-      m_PreInfinity: 2
-      m_PostInfinity: 2
-      m_RotationOrder: 4
-    range: 0.75
-    priority: 3
-  - audioCue: {fileID: 8300000, guid: d22901d85a1074231917044aa61e05be, type: 3}
-    audioCueFrequency: 1
-    animationCurve:
-      serializedVersion: 2
-      m_Curve:
-      - serializedVersion: 3
-        time: 0.75
-        value: 0.2
-        inSlope: -0.08
-        outSlope: -0.08
-        tangentMode: 34
-        weightedMode: 0
-        inWeight: 0
+        inWeight: 0.13609481
         outWeight: 0.33333334
       - serializedVersion: 3
-        time: 2
-        value: 0.1
-        inSlope: -0.08
-        outSlope: -0.08
-        tangentMode: 34
+        time: 1
+        value: 0.013861385
+        inSlope: -1.7438815
+        outSlope: -1.7438815
+        tangentMode: 0
         weightedMode: 0
-        inWeight: 0.33333334
+        inWeight: 0.08402094
         outWeight: 0
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-    range: 2
-    priority: 3
+    range: 1
+    priority: 1

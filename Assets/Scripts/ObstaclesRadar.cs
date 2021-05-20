@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -13,281 +14,143 @@ namespace Navigator
 {
     public class ObstaclesRadar : MonoBehaviour
     {
-        private static CancellationTokenSource cancellationTokenSource;
-
         [SerializeField]
         private bool logVerbose = true;
+        [SerializeField]
+        private bool disableLogs = false;
 
         [SerializeField]
         private List<ObstacleConfig> obstacleConfigs;
 
         [SerializeField]
-        private int simultaneousAudioWarnings;
-        [SerializeField]
         private int warningPriorityRefreshRateMilliseconds = 500;
         [SerializeField]
         public AudioSource audioWarningPrefab;
 
-        private List<AudioSource> audioSourcePool;
-        private Dictionary<AudioSource, bool> isAudioSourceAssigned;
-
         private List<ActiveWarningObstacle> activeObstacles;
-        private List<ActiveWarningCluster> activeClusters;
-        private List<ActiveWarningCluster> clustersPool;
-
-        private float clusterThreshold = 1.5f;
-        private int assignedAudioSources;
+        private List<ActiveWarningAudio> audioSources;
 
         private void TryPlayObstacleWarnings()
         {
-            Log($"TryPlayObstacleWarnings {activeClusters.Count}", false);
+            Log($"TryPlayObstacleWarnings {activeObstacles.Count}", false);
 
-            foreach (var activeCluster in activeClusters)
+            foreach (var activeAudio in audioSources)
             {
-                activeCluster.remainingWarningTime -= Time.deltaTime;
-                Log($"{activeCluster}: reduced remainingTime: {activeCluster.remainingWarningTime}");
+                Log($"TryPlayObstacleWarnings: {activeAudio} >  < activeObstacles: {activeObstacles.Count}", false);
 
-                if (activeCluster.warningConfig == null || activeCluster.assignedAudioSource == null)
+                if (activeAudio.activeObstacle == null)
                     continue;
 
-                Log($"{activeCluster}: audio properly setup");
+                activeAudio.remainingWarningTime -= Time.deltaTime;
 
-                if (activeCluster.remainingWarningTime < 0 && activeCluster.assignedAudioSource.isPlaying == false)
-                {
-                    Log($"{activeCluster}: Trying play sound");
+                Log($"remaining time: {activeAudio.remainingWarningTime}");
 
-                    var audioSource = activeCluster.assignedAudioSource;
-                    var warningConfig = activeCluster.warningConfig;
-                    var animationCurve = warningConfig.animationCurve;
+                if (!(activeAudio.remainingWarningTime < 0) || activeAudio.assignedAudioSource.isPlaying)
+                    continue;
 
-                    activeCluster.remainingWarningTime = warningConfig.audioCueFrequency;
+                Log($"[{activeAudio.Name}] Trying play sound");
 
-                    audioSource.clip = warningConfig.audioCue;
-                    audioSource.transform.position = activeCluster.closestPoint;
+                var audioSource = activeAudio.assignedAudioSource;
+                var warningConfig = activeAudio.warningConfig;
+                var animationCurve = warningConfig.animationCurve;
 
-                    audioSource.minDistance = animationCurve.keys[0].time;
-                    audioSource.maxDistance = animationCurve.keys[animationCurve.length - 1].time;
-                    audioSource.rolloffMode = AudioRolloffMode.Custom;
-                    audioSource.SetCustomCurve(AudioSourceCurveType.CustomRolloff, animationCurve);
+                activeAudio.remainingWarningTime = warningConfig.audioCueFrequency;
 
-                    audioSource.Play();
-                }
+                audioSource.clip = warningConfig.audioCue;
+                audioSource.transform.position = activeAudio.GetAudioSourcePosition(transform.position);
+
+                audioSource.minDistance = animationCurve.keys[0].time;
+                audioSource.maxDistance = animationCurve.keys[animationCurve.length - 1].time;
+                audioSource.rolloffMode = AudioRolloffMode.Custom;
+                audioSource.SetCustomCurve(AudioSourceCurveType.CustomRolloff, animationCurve);
+
+                audioSource.Play();
             }
         }
 
-        private async void RefreshWarnings()
+        private IEnumerator RefreshWarnings()
         {
-            Log($"RefreshWarnings activeObstacles.Count: {activeObstacles.Count}", false);
+            while (true)
+            {
+                AssignWarningAudios();
 
-            DeassignAudioSources();
-            CreateClusters();
-            RecalculatePriorities();
+                yield return new WaitForSeconds(warningPriorityRefreshRateMilliseconds * 0.001f);
+            }
+        }
 
-            ReprioritizeAudioSources();
-            AssignAudioSources();
+        private void AssignWarningAudios()
+        {
+            Log($"AssignWarningAudios || activeObstacles.Count: {activeObstacles.Count}", false);
 
-            await Task.Delay(warningPriorityRefreshRateMilliseconds, cancellationTokenSource.Token);
+            audioSources[0].activeObstacle = null;
+            audioSources[1].activeObstacle = null;
 
-            if (cancellationTokenSource.IsCancellationRequested)
+            var position = transform.position;
+            var gotFeetPosition = GetFeetPosition(position, out var feetPosition);
+
+            foreach (var currentObstacle in activeObstacles)
+            {
+                Log($"Calculating for {currentObstacle}");
+                SetWarningConfig(currentObstacle, position, feetPosition, gotFeetPosition);
+
+                if (currentObstacle.warningConfig == null)
+                    continue;
+
+                Log($"Has config! {currentObstacle}");
+
+                var warningAudio = GetCorrespondentWarningAudioSource(currentObstacle);
+
+                if (warningAudio.activeObstacle == null ||
+                    currentObstacle.distanceToPlayer < warningAudio.activeObstacle.distanceToPlayer &&
+                    currentObstacle.warningConfig.priority <= warningAudio.activeObstacle.warningConfig.priority)
+                {
+                    Log($"Replaced warning config to {currentObstacle}");
+                    warningAudio.activeObstacle = currentObstacle;
+                }
+            }
+
+            ResetRemainingWarningTime(audioSources[0]);
+            ResetRemainingWarningTime(audioSources[1]);
+
+            Log(audioSources[0].ToString());
+            Log(audioSources[1].ToString());
+        }
+
+        private void ResetRemainingWarningTime(ActiveWarningAudio warningAudio)
+        {
+            if (warningAudio.warningConfig == null)
                 return;
 
-            RefreshWarnings();
+            warningAudio.remainingWarningTime = Math.Min(
+                warningAudio.remainingWarningTime,
+                warningAudio.warningConfig.audioCueFrequency);
         }
 
-        private void DeassignAudioSources()
+        private void SetWarningConfig(ActiveWarningObstacle obstacle, Vector3 position, Vector3 feetPosition, bool gotFeetPosition)
         {
-            assignedAudioSources = 0;
+            var closestPoint = obstacle.obstacle.ClosestPoint(position);
+            obstacle.closestPoint = closestPoint;
+            obstacle.distanceToPlayer = (position - closestPoint).magnitude;
 
-            foreach (var key in isAudioSourceAssigned.Keys.ToList())
-                isAudioSourceAssigned[key] = false;
-        }
-
-        private void ReprioritizeAudioSources()
-        {
-            audioSourcePool.Sort((audioSource1, audioSource2) =>
+            if (!gotFeetPosition)
             {
-                if (audioSource1.isPlaying)
-                    return audioSource2.isPlaying ? 0 : 1;
-
-                if (audioSource2.isPlaying)
-                    return -1;
-
-                return 0;
-            });
-        }
-
-        private void AssignAudioSources()
-        {
-            var maxAudioSources = Math.Min(simultaneousAudioWarnings, activeClusters.Count);
-
-            Log($"AssignAudioSources | active Clusters: {activeClusters.Count} | Assigned Audio Sources: {assignedAudioSources}", false);
-
-            for (int i = 0; i < maxAudioSources; i++)
-            {
-                var activeCluster = activeClusters[i];
-
-                if (activeCluster.warningConfig == null)
-                    continue;
-
-                Log("AssignAudioSources | Got WarningConfig");
-
-                if (activeCluster.assignedAudioSource != null)
-                    continue;
-
-                Log("AssignAudioSources | Got no assigned audio source");
-
-                var audioSource = GetAvailableAudioSource();
-                if (audioSource == null)
-                    return;
-
-                activeCluster.assignedAudioSource = audioSource;
-
-                Log($"{activeCluster}: Assigned audio source: {activeCluster.assignedAudioSource}");
-            }
-        }
-
-        private AudioSource GetAvailableAudioSource()
-        {
-            for (int i = 0; i < audioSourcePool.Count; i++)
-            {
-                var audioSource = audioSourcePool[i];
-
-                if (isAudioSourceAssigned[audioSource] || audioSource.isPlaying)
-                    continue;
-
-                isAudioSourceAssigned[audioSource] = true;
-                assignedAudioSources++;
-                return audioSource;
+                obstacle.warningConfig = GetWarningConfig(obstacle);
+                return;
             }
 
-            return null;
-        }
+            var closestFeetPoint = obstacle.obstacle.ClosestPoint(feetPosition);
+            var distance = (feetPosition - closestFeetPoint).magnitude;
 
-        private void RecalculatePriorities()
-        {
-            activeClusters.Sort((cluster1, cluster2) =>
+            if (!(distance < obstacle.distanceToPlayer))
             {
-                if (cluster1.warningConfig == null)
-                {
-                    return cluster2.warningConfig == null ? 0 : 1;
-                }
-
-                if (cluster2.warningConfig == null)
-                    return -1;
-
-                return cluster1.warningConfig.priority.CompareTo(cluster2.warningConfig.priority);
-            });
-        }
-
-        private void CreateClusters()
-        {
-            var remainingObstacles = activeObstacles.ToList(); // Make a copy
-            RecalculateClosestPoints(remainingObstacles);
-
-            var newClusters = new List<ActiveWarningCluster>(activeClusters.Count);
-
-            while (remainingObstacles.Count > 0)
-            {
-                newClusters.Add(CreateCluster(remainingObstacles));
+                obstacle.warningConfig = GetWarningConfig(obstacle);
+                return;
             }
 
-            foreach (var cluster in newClusters)
-            {
-                var equalCluster = activeClusters.Find(entry => entry.mainObstacle == cluster.mainObstacle || cluster.childObstacles.Contains(entry.mainObstacle));
+            obstacle.closestPoint = closestFeetPoint;
+            obstacle.distanceToPlayer = distance;
 
-                if (equalCluster == null) continue;
-
-                Log($"{cluster} Found equal cluster");
-
-                if (equalCluster.assignedAudioSource != null && equalCluster.assignedAudioSource.isPlaying)
-                {
-                    cluster.assignedAudioSource = equalCluster.assignedAudioSource;
-                    isAudioSourceAssigned[cluster.assignedAudioSource] = true;
-                    assignedAudioSources++;
-                    Log($"{cluster} Reused audioSource");
-                }
-
-                cluster.remainingWarningTime = equalCluster.remainingWarningTime;
-            }
-
-            clustersPool.AddRange(activeClusters);
-
-            activeClusters = newClusters;
-        }
-
-        private ActiveWarningCluster CreateCluster(List<ActiveWarningObstacle> remainingObstacles)
-        {
-            var targetObstacle = remainingObstacles[0];
-            Log($"Trying to cluster {targetObstacle.Name}", false);
-
-            var cluster = CreateBaseCluster(targetObstacle);
-            var clusteredIndexes = new List<int>();
-
-            for (var i = 1; i < remainingObstacles.Count; i++) // Skips the first entry
-            {
-                var currentObstacle = remainingObstacles[i];
-
-                if (currentObstacle.obstacleConfig != targetObstacle.obstacleConfig)
-                    continue;
-
-                Log($"{currentObstacle.Name} has same obstacle config");
-
-                if (currentObstacle.distanceToPlayer - targetObstacle.distanceToPlayer > clusterThreshold)
-                    break;
-
-                Log($"{currentObstacle.Name} is in the broad distance threshold");
-
-                var distanceToEachOther = (currentObstacle.closestPoint - targetObstacle.closestPoint).magnitude;
-
-                if (distanceToEachOther < clusterThreshold)
-                {
-                    Log($"{currentObstacle.Name} is in the broad distance threshold");
-                    clusteredIndexes.Add(i);
-                    cluster.childObstacles.Add(currentObstacle);
-                    currentObstacle.parentCluster = cluster;
-                }
-            }
-
-            for (var i = clusteredIndexes.Count - 1; i >= 0; i--)
-                remainingObstacles.RemoveAt(i);
-            remainingObstacles.RemoveAt(0);
-
-            return cluster;
-        }
-
-        private ActiveWarningCluster CreateBaseCluster(ActiveWarningObstacle targetObstacle)
-        {
-            var cluster = GetClusterFromPool();
-
-            cluster.mainObstacle = targetObstacle;
-            cluster.closestPoint = targetObstacle.closestPoint;
-            cluster.warningConfig = GetWarningConfig(targetObstacle);
-            cluster.obstacleConfig = targetObstacle.obstacleConfig;
-            cluster.childObstacles.Add(targetObstacle);
-            cluster.remainingWarningTime = cluster.warningConfig?.audioCueFrequency * 0.5f ?? 0;
-
-            return cluster;
-        }
-
-        private ActiveWarningCluster GetClusterFromPool()
-        {
-            if (clustersPool.Count == 0)
-            {
-                Debug.LogWarning("Created new cluster");
-                return new ActiveWarningCluster()
-                {
-                    childObstacles = new List<ActiveWarningObstacle>()
-                };
-            }
-
-
-            var cluster = clustersPool[0];
-            clustersPool.RemoveAt(0);
-
-            cluster.childObstacles.Clear();
-            cluster.assignedAudioSource = null;
-
-            return cluster;
+            obstacle.warningConfig = GetWarningConfig(obstacle);
         }
 
         private WarningConfig GetWarningConfig(ActiveWarningObstacle activeWarningObstacle)
@@ -305,31 +168,9 @@ namespace Navigator
             return null;
         }
 
-        private void RecalculateClosestPoints(List<ActiveWarningObstacle> remainingObstacles)
+        private ActiveWarningAudio GetCorrespondentWarningAudioSource(ActiveWarningObstacle obstacle)
         {
-            var position = transform.position;
-            var gotFeetPosition = GetFeetPosition(position, out var feetPosition);
-
-            foreach (var activeWarningObstacle in remainingObstacles)
-            {
-                var closestPoint = activeWarningObstacle.obstacle.ClosestPoint(position);
-                activeWarningObstacle.closestPoint = closestPoint;
-                activeWarningObstacle.distanceToPlayer = (position - closestPoint).magnitude;
-
-                if (!gotFeetPosition)
-                    continue;
-
-                var closestFeetPoint = activeWarningObstacle.obstacle.ClosestPoint(feetPosition);
-                var distance = (feetPosition - closestFeetPoint).magnitude;
-
-                if (!(distance < activeWarningObstacle.distanceToPlayer))
-                    continue;
-
-                activeWarningObstacle.closestPoint = closestFeetPoint;
-                activeWarningObstacle.distanceToPlayer = distance;
-            }
-
-            remainingObstacles.Sort((obstacle1, obstacle2) => obstacle1.distanceToPlayer.CompareTo(obstacle2.distanceToPlayer));
+            return audioSources[0].obstacleConfig == obstacle.obstacleConfig ? audioSources[0] : audioSources[1];
         }
 
         private bool GetFeetPosition(Vector3 position, out Vector3 feetPosition)
@@ -346,9 +187,8 @@ namespace Navigator
 
         private void Update()
         {
-            Log($"Update {activeClusters.Count}");
+            Log($"Update {audioSources.Count}");
 
-            AssignAudioSources();
             TryPlayObstacleWarnings();
         }
 
@@ -407,82 +247,87 @@ namespace Navigator
 
         private void InitializeAudioSources()
         {
-            audioSourcePool = new List<AudioSource>(simultaneousAudioWarnings);
-            isAudioSourceAssigned = new Dictionary<AudioSource, bool>(simultaneousAudioWarnings);
+            audioSources = new List<ActiveWarningAudio>(obstacleConfigs.Count);
 
-            for (int i = 0; i < simultaneousAudioWarnings; i++)
+            foreach (var obstacleConfig in obstacleConfigs)
             {
                 var audioSource = Instantiate(audioWarningPrefab, transform);
-                audioSourcePool.Add(audioSource);
-                isAudioSourceAssigned[audioSource] = false;
+                audioSources.Add(new ActiveWarningAudio()
+                {
+                    assignedAudioSource = audioSource,
+                    obstacleConfig = obstacleConfig
+                });
             }
         }
 
         private void Awake()
         {
+            Debug.Assert(obstacleConfigs.Count == 2, "There should always 2 obstacles config");
+
             InitializeAudioSources();
             activeObstacles = new List<ActiveWarningObstacle>();
-            activeClusters = new List<ActiveWarningCluster>();
 
-            clustersPool = new List<ActiveWarningCluster>();
-
-            cancellationTokenSource = new CancellationTokenSource();
-            RefreshWarnings();
-
-#if UNITY_EDITOR
-            EditorApplication.playModeStateChanged += PlayModeStateChanged;
-#endif
+            StartCoroutine(RefreshWarnings());
         }
 
         private void Log(string message, bool isVerbose = true)
         {
+            if (disableLogs)
+                return;
+
             if (!logVerbose && isVerbose)
                 return;
 
             Debug.Log($"{Time.time} || {message}");
         }
-
-#if UNITY_EDITOR
-        private void PlayModeStateChanged(PlayModeStateChange state)
-        {
-            if (state == PlayModeStateChange.ExitingPlayMode)
-            {
-                EditorApplication.playModeStateChanged -= PlayModeStateChanged;
-                cancellationTokenSource.Cancel();
-                cancellationTokenSource = null;
-            }
-        }
-#endif
     }
 
     public class ActiveWarningObstacle
     {
         public ObstacleConfig obstacleConfig;
-        public Vector3 closestPoint;
-        public float distanceToPlayer;
         public Collider obstacle;
 
-        public string Name => obstacleConfig.name;
-
-        public ActiveWarningCluster parentCluster;
-    }
-
-    public class ActiveWarningCluster
-    {
-        public float remainingWarningTime;
-        public AudioSource assignedAudioSource;
         public Vector3 closestPoint;
-        public ActiveWarningObstacle mainObstacle;
-
-        public List<ActiveWarningObstacle> childObstacles;
-        public ObstacleConfig obstacleConfig;
+        public float distanceToPlayer;
         public WarningConfig warningConfig;
 
         public string Name => obstacleConfig.name;
 
         public override string ToString()
         {
-            return $"[Cluster] {Name}";
+            return $"[ActiveWarningObstacle] | {Name} |";
+        }
+
+        public ActiveWarningAudio ParentAudio;
+    }
+
+    public class ActiveWarningAudio
+    {
+        public AudioSource assignedAudioSource;
+        public ObstacleConfig obstacleConfig;
+
+        public float remainingWarningTime;
+        public ActiveWarningObstacle activeObstacle;
+
+        public WarningConfig warningConfig => activeObstacle?.warningConfig;
+        public int priority => warningConfig?.priority ?? Int32.MaxValue;
+        public string Name => obstacleConfig.name;
+
+        public Vector3 GetAudioSourcePosition(Vector3 playerPosition)
+        {
+            // TODO: Maybe add an extra offset if we guide the player to keep the device at chest level
+            return new Vector3(activeObstacle.closestPoint.x, playerPosition.y, activeObstacle.closestPoint.z);
+        }
+
+        public override string ToString()
+        {
+            if (activeObstacle == null)
+                return $"[ActiveWarningAudio] | {Name} | No Active Obstacle |";
+
+            if (warningConfig == null)
+                return $"[ActiveWarningAudio] | {Name} | No Warning Config |";
+
+            return $"[ActiveWarningAudio] | {Name} | {warningConfig.audioCue} | {remainingWarningTime} |";
         }
     }
 }

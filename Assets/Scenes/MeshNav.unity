@@ -408,7 +408,7 @@ VideoPlayer:
   m_RenderMode: 2
   m_AspectRatio: 2
   m_DataSource: 0
-  m_PlaybackSpeed: 0.5
+  m_PlaybackSpeed: 1
   m_AudioOutputMode: 2
   m_TargetAudioSources: []
   m_DirectAudioVolumes: []
@@ -419,7 +419,7 @@ VideoPlayer:
   m_PlayOnAwake: 1
   m_SkipOnDrop: 0
   m_Looping: 1
-  m_WaitForFirstFrame: 1
+  m_WaitForFirstFrame: 0
   m_FrameReadyEventEnabled: 0
 --- !u!1 &519828569
 GameObject:
@@ -530,8 +530,10 @@ MonoBehaviour:
     type: 3}
   m_WallMeshPrefab: {fileID: 3474271192428087024, guid: 79b6de234a9a44eb2a481947a184a204,
     type: 3}
-  m_FloorMeshPrefab: {fileID: 0}
-  m_CeilingMeshPrefab: {fileID: 0}
+  m_FloorMeshPrefab: {fileID: 3759953987800492041, guid: c08707f48795c4697a4095a2e73d1583,
+    type: 3}
+  m_CeilingMeshPrefab: {fileID: 1113424142426548330, guid: 3c44023a24638495fb922ff4e92a9c46,
+    type: 3}
   m_TableMeshPrefab: {fileID: 3988913343676574928, guid: ff12d0d1aaf0b48d0beb34f3854b5d41,
     type: 3}
   m_SeatMeshPrefab: {fileID: 7697024825637311248, guid: 3d02213a900f346f7981c7572e851b8a,
@@ -540,7 +542,7 @@ MonoBehaviour:
     type: 3}
   m_DoorMeshPrefab: {fileID: 6108169453717286223, guid: f7aeb5ca16bc04524a07fe581cedf3ff,
     type: 3}
-  cooldown: 1
+  MeshVisualizationEnabled: 1
 --- !u!114 &595830263
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -862,7 +864,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1033002254
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -952,7 +954,7 @@ Camera:
     y: 0
     width: 1
     height: 1
-  near clip plane: 0.1
+  near clip plane: 0.01
   far clip plane: 20
   field of view: 60
   orthographic: 0
@@ -1042,12 +1044,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   logVerbose: 1
+  disableLogs: 1
   obstacleConfigs:
   - {fileID: 11400000, guid: fd0061c6037354534a65f04f953dd0df, type: 2}
-  - {fileID: 11400000, guid: c88973118cd3548ca8dc87889dbf0b89, type: 2}
   - {fileID: 11400000, guid: e1dcabec70c7c4eecb51856165e0e826, type: 2}
-  simultaneousAudioWarnings: 3
-  warningPriorityRefreshRateMilliseconds: 500
+  warningPriorityRefreshRateMilliseconds: 5000
   audioWarningPrefab: {fileID: 1822947233425054687, guid: 17e6c78faafd64dfa84d02f192e4674e,
     type: 3}
 --- !u!81 &1336890965
@@ -1594,7 +1595,18 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1874271696}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 595830262}
+        m_MethodName: ToggleMeshVisualization
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1874271696
 MonoBehaviour:
   m_ObjectHideFlags: 0

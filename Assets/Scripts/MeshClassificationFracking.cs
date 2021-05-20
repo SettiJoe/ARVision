@@ -1,15 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Unity.Collections;
-using UnityEngine;
-using UnityEngine.XR;
-using UnityEngine.XR.ARFoundation;
 using UnityEngine.XR.ARSubsystems;
 // #if UNITY_IOS && !UNITY_EDITOR
 using UnityEngine.XR.ARKit;
 // #endif // UNITY_IOS && !UNITY_EDITOR
-
-using Object = UnityEngine.Object;
 
 namespace UnityEngine.XR.ARFoundation.Samples
 {
@@ -18,7 +14,7 @@ namespace UnityEngine.XR.ARFoundation.Samples
         /// <summary>
         /// The number of mesh classifications detected.
         /// </summary>
-        const int k_NumClassifications = 8;
+        const int k_NumClassifications = 3;
 
         /// <summary>
         /// The mesh manager for the scene.
@@ -97,14 +93,52 @@ namespace UnityEngine.XR.ARFoundation.Samples
         /// </summary>
         readonly List<int> m_ClassifiedTriangles = new List<int>();
 
+        private readonly Dictionary<ARMeshClassification, ARMeshClassification> allowedClassifications =
+            new Dictionary<ARMeshClassification, ARMeshClassification>()
+            {
+                {ARMeshClassification.Floor, ARMeshClassification.Floor},
+                {ARMeshClassification.Ceiling, ARMeshClassification.Floor},
+
+                {ARMeshClassification.None, ARMeshClassification.Table},
+                {ARMeshClassification.Table, ARMeshClassification.Table},
+                {ARMeshClassification.Seat, ARMeshClassification.Table},
+
+                {ARMeshClassification.Wall, ARMeshClassification.Wall},
+                {ARMeshClassification.Door, ARMeshClassification.Wall},
+                {ARMeshClassification.Window, ARMeshClassification.Wall},
+            };
+
+        private readonly List<ARMeshClassification> allowedClassificationsList =
+            new List<ARMeshClassification>()
+            {
+                {ARMeshClassification.Floor},
+                {ARMeshClassification.Wall},
+                {ARMeshClassification.Table},
+            };
+
+        public bool MeshVisualizationEnabled = true;
+
+        public void ToggleMeshVisualization()
+        {
+            MeshVisualizationEnabled = !MeshVisualizationEnabled;
+
+            foreach (var pair in m_MeshFrackingMap)
+            {
+                foreach (var meshFilter in pair.Value)
+                {
+                    meshFilter.GetComponent<MeshRenderer>().enabled = MeshVisualizationEnabled;
+                }
+            }
+        }
+
         /// <summary>
         /// On awake, set up the mesh filter delegates.
         /// </summary>
         void Awake()
         {
-            m_BreakupMeshAction = new Action<MeshFilter>(BreakupMesh);
-            m_UpdateMeshAction = new Action<MeshFilter>(UpdateMesh);
-            m_RemoveMeshAction = new Action<MeshFilter>(RemoveMesh);
+            m_BreakupMeshAction = BreakupMesh;
+            m_UpdateMeshAction = UpdateMesh;
+            m_RemoveMeshAction = RemoveMesh;
         }
 
         /// <summary>
@@ -169,48 +203,43 @@ namespace UnityEngine.XR.ARFoundation.Samples
         /// <param name="selectedMeshClassification">A single classification to extract the faces from the
         /// <paramref="baseMesh"/>into the <paramref name="classifiedMesh"/></param>
         /// <param name="classifiedMesh">The output mesh to be updated with the extracted mesh.</param>
-        void ExtractClassifiedMesh(Mesh baseMesh, NativeArray<ARMeshClassification> faceClassifications, ARMeshClassification selectedMeshClassification, Mesh classifiedMesh)
+        void ExtractClassifiedMesh(Mesh baseMesh, List<ARMeshClassification> faceClassifications, ARMeshClassification selectedMeshClassification, Mesh classifiedMesh)
         {
             // Count the number of faces matching the selected classification.
             int classifiedFaceCount = 0;
-            for (int i = 0; i < faceClassifications.Length; ++i)
+            foreach (var faceClassification in faceClassifications)
             {
-                if (faceClassifications[i] == selectedMeshClassification)
-                {
+                if (faceClassification == selectedMeshClassification)
                     ++classifiedFaceCount;
-                }
             }
 
-            // Clear the existing mesh.
             classifiedMesh.Clear();
 
-            // If there were matching face classifications, build a new mesh from the base mesh.
-            if (classifiedFaceCount > 0)
+            if (classifiedFaceCount <= 0)
+                return;
+
+            baseMesh.GetTriangles(m_BaseTriangles, 0);
+            Debug.Assert(m_BaseTriangles.Count == (faceClassifications.Count * 3),
+                "unexpected mismatch between triangle count and face classification count");
+
+            m_ClassifiedTriangles.Clear();
+            m_ClassifiedTriangles.Capacity = classifiedFaceCount * 3;
+
+            for (int i = 0; i < faceClassifications.Count(); ++i)
             {
-                baseMesh.GetTriangles(m_BaseTriangles, 0);
-                Debug.Assert(m_BaseTriangles.Count == (faceClassifications.Length * 3),
-                            "unexpected mismatch between triangle count and face classification count");
+                if (faceClassifications[i] != selectedMeshClassification)
+                    continue;
 
-                m_ClassifiedTriangles.Clear();
-                m_ClassifiedTriangles.Capacity = classifiedFaceCount * 3;
+                int baseTriangleIndex = i * 3;
 
-                for (int i = 0; i < faceClassifications.Length; ++i)
-                {
-                    if (faceClassifications[i] == selectedMeshClassification)
-                    {
-                        int baseTriangleIndex = i * 3;
-
-                        m_ClassifiedTriangles.Add(m_BaseTriangles[baseTriangleIndex + 0]);
-                        m_ClassifiedTriangles.Add(m_BaseTriangles[baseTriangleIndex + 1]);
-                        m_ClassifiedTriangles.Add(m_BaseTriangles[baseTriangleIndex + 2]);
-                    }
-                }
-
-                classifiedMesh.vertices = baseMesh.vertices;
-                classifiedMesh.normals = baseMesh.normals;
-                classifiedMesh.SetTriangles(m_ClassifiedTriangles, 0);
+                m_ClassifiedTriangles.Add(m_BaseTriangles[baseTriangleIndex + 0]);
+                m_ClassifiedTriangles.Add(m_BaseTriangles[baseTriangleIndex + 1]);
+                m_ClassifiedTriangles.Add(m_BaseTriangles[baseTriangleIndex + 2]);
             }
 
+            classifiedMesh.vertices = baseMesh.vertices;
+            classifiedMesh.normals = baseMesh.normals;
+            classifiedMesh.SetTriangles(m_ClassifiedTriangles, 0);
         }
 
         /// <summary>
@@ -222,56 +251,57 @@ namespace UnityEngine.XR.ARFoundation.Samples
         {
             XRMeshSubsystem meshSubsystem = m_MeshManager.subsystem as XRMeshSubsystem;
             if (meshSubsystem == null)
-            {
                 return;
-            }
 
             var meshId = ExtractTrackableId(meshFilter.name);
             var faceClassifications = meshSubsystem.GetFaceClassifications(meshId, Allocator.Persistent);
 
             if (!faceClassifications.IsCreated)
-            {
                 return;
-            }
 
             using (faceClassifications)
             {
                 if (faceClassifications.Length <= 0)
-                {
                     return;
-                }
+
+                Debug.Log("Before faceClassificationsList");
+
+                var faceClassificationsList = faceClassifications.Select(classification => allowedClassifications[classification]).ToList();
+
+                Debug.Log("After faceClassificationsList");
 
                 var parent = meshFilter.transform.parent;
 
                 MeshFilter[] meshFilters = new MeshFilter[k_NumClassifications];
 
-                meshFilters[(int)ARMeshClassification.None] = (m_NoneMeshPrefab == null) ? null : Instantiate(m_NoneMeshPrefab, parent);
-                meshFilters[(int)ARMeshClassification.Wall] = (m_WallMeshPrefab == null) ? null : Instantiate(m_WallMeshPrefab, parent);
-                meshFilters[(int)ARMeshClassification.Floor] = (m_FloorMeshPrefab == null) ? null : Instantiate(m_FloorMeshPrefab, parent);
-                meshFilters[(int)ARMeshClassification.Ceiling] = (m_CeilingMeshPrefab == null) ? null : Instantiate(m_CeilingMeshPrefab, parent);
-                meshFilters[(int)ARMeshClassification.Table] = (m_TableMeshPrefab == null) ? null : Instantiate(m_TableMeshPrefab, parent);
-                meshFilters[(int)ARMeshClassification.Seat] = (m_SeatMeshPrefab == null) ? null : Instantiate(m_SeatMeshPrefab, parent);
-                meshFilters[(int)ARMeshClassification.Window] = (m_WindowMeshPrefab == null) ? null : Instantiate(m_WindowMeshPrefab, parent);
-                meshFilters[(int)ARMeshClassification.Door] = (m_DoorMeshPrefab == null) ? null : Instantiate(m_DoorMeshPrefab, parent);
+                meshFilters[0] = (m_FloorMeshPrefab == null) ? null : Instantiate(m_FloorMeshPrefab, parent);
+                meshFilters[1] = (m_WallMeshPrefab == null) ? null : Instantiate(m_WallMeshPrefab, parent);
+                meshFilters[2] = (m_TableMeshPrefab == null) ? null : Instantiate(m_TableMeshPrefab, parent);
+
+                foreach (var entry in meshFilters)
+                    entry.GetComponent<MeshRenderer>().enabled = MeshVisualizationEnabled;
 
                 m_MeshFrackingMap[meshId] = meshFilters;
+
+                Debug.Log("Created meshFilters");
 
                 var baseMesh = meshFilter.sharedMesh;
                 for (int i = 0; i < k_NumClassifications; ++i)
                 {
                     var classifiedMeshFilter = meshFilters[i];
-                    if (classifiedMeshFilter != null)
-                    {
-                        var classifiedMesh = classifiedMeshFilter.mesh;
-                        ExtractClassifiedMesh(baseMesh, faceClassifications, (ARMeshClassification)i, classifiedMesh);
-                        meshFilters[i].mesh = classifiedMesh;
-                        meshFilters[i].GetComponent<MeshCollider>().sharedMesh = classifiedMesh;
-                    }
+                    if (classifiedMeshFilter == null)
+                        continue;
+
+                    var classifiedMesh = classifiedMeshFilter.mesh;
+                    ExtractClassifiedMesh(baseMesh, faceClassificationsList, allowedClassificationsList[i], classifiedMesh);
+
+                    Debug.Log($"Extracted meshFilters for {allowedClassificationsList[i]}");
+
+                    meshFilters[i].mesh = classifiedMesh;
+                    meshFilters[i].GetComponent<MeshCollider>().sharedMesh = classifiedMesh;
                 }
             }
         }
-
-        public int cooldown = 1;
 
         /// <summary>
         /// Update the submeshes corresponding to the single mesh with multiple face classifications into submeshes.
@@ -281,45 +311,36 @@ namespace UnityEngine.XR.ARFoundation.Samples
         {
             XRMeshSubsystem meshSubsystem = m_MeshManager.subsystem as XRMeshSubsystem;
             if (meshSubsystem == null)
-            {
                 return;
-            }
 
             var meshId = ExtractTrackableId(meshFilter.name);
             var faceClassifications = meshSubsystem.GetFaceClassifications(meshId, Allocator.Persistent);
 
             if (!faceClassifications.IsCreated)
-            {
                 return;
-            }
 
             using (faceClassifications)
             {
                 if (faceClassifications.Length <= 0)
-                {
                     return;
-                }
 
                 var meshFilters = m_MeshFrackingMap[meshId];
-
                 var baseMesh = meshFilter.sharedMesh;
+
+                var faceClassificationsList = faceClassifications.Select(classification => allowedClassifications[classification]).ToList();
+
                 for (int i = 0; i < k_NumClassifications; ++i)
                 {
                     var classifiedMeshFilter = meshFilters[i];
-                    if (classifiedMeshFilter != null)
-                    {
-                        var classifiedMesh = classifiedMeshFilter.mesh;
-                        ExtractClassifiedMesh(baseMesh, faceClassifications, (ARMeshClassification)i, classifiedMesh);
-                        meshFilters[i].mesh = classifiedMesh;
-                        meshFilters[i].GetComponent<MeshCollider>().sharedMesh = classifiedMesh;
+                    if (classifiedMeshFilter == null)
+                        continue;
 
-                        if (cooldown < 0) Debug.Log($"[{meshId}] {meshFilters[i].mesh} {meshFilters[i]}");
-                    }
+                    var classifiedMesh = classifiedMeshFilter.mesh;
+                    ExtractClassifiedMesh(baseMesh, faceClassificationsList, allowedClassificationsList[i], classifiedMesh);
+                    meshFilters[i].mesh = classifiedMesh;
+                    meshFilters[i].GetComponent<MeshCollider>().sharedMesh = classifiedMesh;
                 }
             }
-
-            if (cooldown < 0)
-                cooldown = 1;
         }
 
         /// <summary>

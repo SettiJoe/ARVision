@@ -3,7 +3,24 @@ guid: 238bab1e4cd1947dfb0a347f3eee7b1f
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
-  defaultReferences: []
+  defaultReferences:
+  - m_MeshManager: {instanceID: 0}
+  - m_NoneMeshPrefab: {fileID: 6202378973700837002, guid: fddcd62d97fac4370b32ed91c45494fd,
+      type: 3}
+  - m_WallMeshPrefab: {fileID: 3474271192428087024, guid: 79b6de234a9a44eb2a481947a184a204,
+      type: 3}
+  - m_FloorMeshPrefab: {fileID: 3759953987800492041, guid: c08707f48795c4697a4095a2e73d1583,
+      type: 3}
+  - m_CeilingMeshPrefab: {fileID: 1113424142426548330, guid: 3c44023a24638495fb922ff4e92a9c46,
+      type: 3}
+  - m_TableMeshPrefab: {fileID: 3988913343676574928, guid: ff12d0d1aaf0b48d0beb34f3854b5d41,
+      type: 3}
+  - m_SeatMeshPrefab: {fileID: 7697024825637311248, guid: 3d02213a900f346f7981c7572e851b8a,
+      type: 3}
+  - m_WindowMeshPrefab: {fileID: 4810235479291407990, guid: eb93e86095a044f6794390f6183f4993,
+      type: 3}
+  - m_DoorMeshPrefab: {fileID: 6108169453717286223, guid: f7aeb5ca16bc04524a07fe581cedf3ff,
+      type: 3}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 
